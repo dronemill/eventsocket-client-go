@@ -5,7 +5,7 @@
 package main
 
 import (
-	"github.com/gorilla/websocket"
+	"github.com/dronemill/eventsocket-client-go/Godeps/_workspace/src/github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"time"

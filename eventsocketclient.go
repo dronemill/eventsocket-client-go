@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/dronemill/eventsocket-client-go/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
 var d websocket.Dialer

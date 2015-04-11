@@ -14,7 +14,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/dronemill/eventsocket-client-go/Godeps/_workspace/src/github.com/gorilla/websocket"
 )
 
 const (
