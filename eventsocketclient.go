@@ -28,7 +28,6 @@ type Client struct {
 	Id string `json:"Id"`
 
 	RecvBroadcast chan *Received
-	RecvStandard  chan *Received
 	RecvRequest   chan *Received
 
 	// the URL to the server
@@ -39,6 +38,9 @@ type Client struct {
 
 	// a mapping of all requests that are currently inflight
 	liveRequests map[string]chan *Received
+
+	// a mapping of the subscription return channels
+	subscriptions map[string]chan *Received
 }
 
 // register a new client with the server
@@ -53,8 +55,8 @@ func NewClient(url string) (*Client, error) {
 	client := Client{
 		url:           url,
 		liveRequests:  make(map[string]chan *Received),
+		subscriptions: make(map[string]chan *Received),
 		RecvBroadcast: make(chan *Received),
-		RecvStandard:  make(chan *Received),
 		RecvRequest:   make(chan *Received),
 	}
 
@@ -100,7 +102,7 @@ func (client *Client) Recv() error {
 		case MESSAGE_TYPE_BROADCAST:
 			client.RecvBroadcast <- r
 		case MESSAGE_TYPE_STANDARD:
-			client.RecvStandard <- r
+			client.subscriptions[r.Message.Event] <- r
 		case MESSAGE_TYPE_REQUEST:
 			client.RecvRequest <- r
 		case MESSAGE_TYPE_REPLY:
@@ -135,7 +137,7 @@ func (client *Client) Emit(event string, p *Payload) error {
 }
 
 // suscribe to an event(s)
-func (client *Client) Suscribe(events ...string) error {
+func (client *Client) Suscribe(events ...string) (<-chan *Received, error) {
 	p := NewPayload()
 	p["Events"] = events
 
@@ -144,11 +146,21 @@ func (client *Client) Suscribe(events ...string) error {
 		Payload:     &p,
 	}
 
-	return client.write(m)
+	if err := client.write(m); err != nil {
+		return nil, err
+	}
+
+	// create the return channel
+	c := make(chan *Received)
+	for _, event := range events {
+		client.subscriptions[event] = c
+	}
+
+	return c, nil
 }
 
 // Execute a request against a client
-func (client *Client) Request(id string, p *Payload) (chan *Received, error) {
+func (client *Client) Request(id string, p *Payload) (<-chan *Received, error) {
 	requestId := makeUuid()
 	m := &Message{
 		MessageType:     MESSAGE_TYPE_REQUEST,
