@@ -200,7 +200,7 @@ func (client *Client) write(m *Message) error {
 	return client.ws.WriteJSON(m)
 }
 
-// allow read limits to be set
-func (client *Client) SetReadLimit(limit int64) {
+// Set the max message size. Note: this is not the max frame size
+func (client *Client) SetMaxMessageSize(limit int64) {
 	client.ws.SetReadLimit(limit)
 }
