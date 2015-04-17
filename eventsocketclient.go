@@ -27,20 +27,22 @@ type Client struct {
 	// The client Id, provided by the server
 	Id string `json:"Id"`
 
-	RecvBroadcast chan *Received
-	RecvRequest   chan *Received
+	// channels for receiving messages
+	RecvBroadcast chan *Received `json:-`
+	RecvRequest   chan *Received `json:-`
+	RecvError     chan error     `json:-`
 
 	// the URL to the server
 	url string `json:-`
 
 	// the actual websocket connection, after we've connected
-	ws *websocket.Conn
+	ws *websocket.Conn `json:-`
 
 	// a mapping of all requests that are currently inflight
-	liveRequests map[string]chan *Received
+	liveRequests map[string]chan *Received `json:-`
 
 	// a mapping of the subscription return channels
-	subscriptions map[string]chan *Received
+	subscriptions map[string]chan *Received `json:-`
 }
 
 // register a new client with the server
@@ -58,6 +60,7 @@ func NewClient(url string) (*Client, error) {
 		subscriptions: make(map[string]chan *Received),
 		RecvBroadcast: make(chan *Received),
 		RecvRequest:   make(chan *Received),
+		RecvError:     make(chan error),
 	}
 
 	// unmarshal the response body
@@ -90,7 +93,8 @@ func (client *Client) Recv() error {
 		m := &Message{}
 		if err := client.ws.ReadJSON(m); err != nil {
 			// TODO: something other than panic
-			panic(err)
+			client.RecvError <- err
+			continue
 		}
 
 		r := &Received{
