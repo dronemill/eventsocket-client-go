@@ -199,3 +199,8 @@ func (client *Client) Reply(requestId, cid string, p *Payload) error {
 func (client *Client) write(m *Message) error {
 	return client.ws.WriteJSON(m)
 }
+
+// allow read limits to be set
+func (client *Client) SetReadLimit(limit int64) {
+	client.ws.SetReadLimit(limit)
+}
