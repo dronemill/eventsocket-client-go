@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dronemill/eventsocket-client-go/Godeps/_workspace/src/github.com/gorilla/websocket"
+	"github.com/gorilla/websocket"
 )
 
 var d websocket.Dialer
@@ -85,6 +85,13 @@ func (client *Client) DialWs() error {
 	client.ws = ws
 
 	return nil
+}
+
+// attempt a reconnect
+func (client *Client) Reconnect() error {
+	client.ws.Close()
+
+	return client.DialWs()
 }
 
 // Receive from the socket
