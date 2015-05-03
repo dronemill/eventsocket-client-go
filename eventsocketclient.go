@@ -94,6 +94,11 @@ func (client *Client) Reconnect() error {
 	return client.DialWs()
 }
 
+// Close closes the connections
+func (client *Client) Close() {
+	client.ws.Close()
+}
+
 // Receive from the socket
 func (client *Client) Recv() error {
 	for {
