@@ -23,29 +23,30 @@ func init() {
 	}
 }
 
+// Client is the main eventsocket client
 type Client struct {
 	// The client Id, provided by the server
 	Id string `json:"Id"`
 
 	// channels for receiving messages
-	RecvBroadcast chan *Received `json:-`
-	RecvRequest   chan *Received `json:-`
-	RecvError     chan error     `json:-`
+	RecvBroadcast chan *Received `json:"-"`
+	RecvRequest   chan *Received `json:"-"`
+	RecvError     chan error     `json:"-"`
 
 	// the URL to the server
-	url string `json:-`
+	url string
 
 	// the actual websocket connection, after we've connected
-	ws *websocket.Conn `json:-`
+	ws *websocket.Conn
 
 	// a mapping of all requests that are currently inflight
-	liveRequests map[string]chan *Received `json:-`
+	liveRequests map[string]chan *Received
 
 	// a mapping of the subscription return channels
-	subscriptions map[string]chan *Received `json:-`
+	subscriptions map[string]chan *Received
 }
 
-// register a new client with the server
+// NewClient registers a new client with the server
 func NewClient(url string) (*Client, error) {
 	resp, err := http.Post(fmt.Sprintf("http://%s/v1/clients", url), "application/json", strings.NewReader(""))
 	if err != nil {
@@ -74,7 +75,7 @@ func NewClient(url string) (*Client, error) {
 	return &client, nil
 }
 
-// dial the websocket server, and get a websocket connection in return
+// DialWs will dial the websocket server, and get a websocket connection in return
 func (client *Client) DialWs() error {
 	headers := http.Header{}
 	ws, _, err := d.Dial(fmt.Sprintf("ws://%s/v1/clients/%s/ws", client.url, client.Id), headers)
@@ -87,7 +88,7 @@ func (client *Client) DialWs() error {
 	return nil
 }
 
-// attempt a reconnect
+// Reconnect attempts a reconnect with the server
 func (client *Client) Reconnect() error {
 	client.ws.Close()
 
@@ -99,7 +100,7 @@ func (client *Client) Close() {
 	client.ws.Close()
 }
 
-// Receive from the socket
+// Recv reads from the socket
 func (client *Client) Recv() error {
 	for {
 		m := &Message{}
@@ -131,7 +132,7 @@ func (client *Client) Recv() error {
 	return nil
 }
 
-// broadcast a payload
+// Broadcast a payload
 func (client *Client) Broadcast(p *Payload) error {
 	m := &Message{
 		MessageType: MESSAGE_TYPE_BROADCAST,
@@ -141,7 +142,7 @@ func (client *Client) Broadcast(p *Payload) error {
 	return client.write(m)
 }
 
-// emit an event
+// Emit an event
 func (client *Client) Emit(event string, p *Payload) error {
 	m := &Message{
 		MessageType: MESSAGE_TYPE_STANDARD,
@@ -152,7 +153,7 @@ func (client *Client) Emit(event string, p *Payload) error {
 	return client.write(m)
 }
 
-// suscribe to an event(s)
+// Suscribe to an event(s)
 func (client *Client) Suscribe(events ...string) (<-chan *Received, error) {
 	p := NewPayload()
 	p["Events"] = events
@@ -175,12 +176,12 @@ func (client *Client) Suscribe(events ...string) (<-chan *Received, error) {
 	return c, nil
 }
 
-// Execute a request against a client
+// Request will execute a request against a client
 func (client *Client) Request(id string, p *Payload) (<-chan *Received, error) {
-	requestId := makeUuid()
+	requestID := makeUuid()
 	m := &Message{
 		MessageType:     MESSAGE_TYPE_REQUEST,
-		RequestId:       requestId,
+		RequestId:       requestID,
 		RequestClientId: id,
 		Payload:         p,
 	}
@@ -190,16 +191,16 @@ func (client *Client) Request(id string, p *Payload) (<-chan *Received, error) {
 	}
 
 	c := make(chan *Received)
-	client.liveRequests[requestId] = c
+	client.liveRequests[requestID] = c
 	return c, nil
 }
 
-// Send a reply to a request
-func (client *Client) Reply(requestId, cid string, p *Payload) error {
+// Reply sends a reply to a request
+func (client *Client) Reply(requestID, cid string, p *Payload) error {
 	m := &Message{
 		MessageType:   MESSAGE_TYPE_REPLY,
 		ReplyClientId: cid,
-		RequestId:     requestId,
+		RequestId:     requestID,
 		Payload:       p,
 	}
 
@@ -212,7 +213,7 @@ func (client *Client) write(m *Message) error {
 	return client.ws.WriteJSON(m)
 }
 
-// Set the max message size. Note: this is not the max frame size
+// SetMaxMessageSize sets the max message size. Note: this is not the max frame size
 func (client *Client) SetMaxMessageSize(limit int64) {
 	client.ws.SetReadLimit(limit)
 }
