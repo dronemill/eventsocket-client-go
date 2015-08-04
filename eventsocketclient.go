@@ -104,6 +104,7 @@ func (client *Client) Close() {
 func (client *Client) Recv() error {
 	for {
 		m := &Message{}
+		client.SetReadDeadline(30 * time.Second)
 		if err := client.ws.ReadJSON(m); err != nil {
 			// TODO: something other than panic
 			client.RecvError <- err
@@ -216,4 +217,9 @@ func (client *Client) write(m *Message) error {
 // SetMaxMessageSize sets the max message size. Note: this is not the max frame size
 func (client *Client) SetMaxMessageSize(limit int64) {
 	client.ws.SetReadLimit(limit)
+}
+
+// SetReadDeadline sets the deadline to receive a response on the socket
+func (client *Client) SetReadDeadline(t time.Duration) {
+	client.ws.SetReadDeadline(time.Now().Add(t))
 }
