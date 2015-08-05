@@ -104,7 +104,6 @@ func (client *Client) Close() {
 func (client *Client) Recv() error {
 	for {
 		m := &Message{}
-		client.SetReadDeadline(30 * time.Second)
 		if err := client.ws.ReadJSON(m); err != nil {
 			// TODO: something other than panic
 			client.RecvError <- err
